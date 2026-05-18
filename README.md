@@ -43,6 +43,7 @@ JSON shape (see [examples/default.json](examples/default.json)):
 | `finalStepCount` | int | number of simulation steps to run |
 | `crowdingFactor` | int | `C` in `r = r × (1 − N/C)` — the resource ceiling |
 | `randomSeed` | long | reproducibility seed (default 0) |
+| `threadCount` | int | worker threads for per-species step compute (default 1; `0` = `Runtime.availableProcessors()`). Output is byte-identical across thread counts for a fixed seed. |
 | `spontaneous.spawnProbability` | 0–1 | per-step chance the spontaneous replicator emerges (scaled by resource factor) |
 | `spontaneous.deathProbability` | 0–1 | per-step per-molecule death chance |
 | `spontaneous.replicationProbability` | 0–1 | per-step per-molecule replication chance (scaled by resource factor) |
@@ -62,12 +63,24 @@ The reference pseudocode in `documents/evolution-simulation.md` has a few bugs a
 5. **`spawnProbability` lives on `Replicator`** (not `Simulation`). The spontaneous template has it > 0; every mutant gets it set to 0 (rule: "secondary mutations have spawn rate = 0").
 6. **Aggregate per-species binomial sampling** — each step computes `Binomial(count, p)` per species rather than rolling `Math.random()` per individual molecule. Statistically equivalent at the species level and orders of magnitude faster.
 
+## Parallelism
+
+When `threadCount > 1`, per-species step work (death sampling, replication sampling, mutation sampling, mutant probability perturbation) runs concurrently on a fixed-size pool. The contract:
+
+- The **crowding factor** `factor = max(0, 1 − N/C)` and the **total population N** that feeds it are computed once at step start and shared read-only by all worker threads — the user-asked "shared context".
+- Workers write **nothing** to shared state. Each task returns a `SpeciesStepResult` (deaths, clones, list of mutant specs); a single-threaded commit phase folds results back into `Population` in `activeSnapshot()` order and assigns new species IDs sequentially.
+- Each task gets its **own `Random`** seeded deterministically from `(randomSeed, step, speciesId)`. Same seed → byte-identical output regardless of `threadCount`. The `sameSeedSameOutputAcrossThreadCounts` test guards this.
+- Spontaneous spawn stays single-threaded (it's one main-RNG draw per step) and runs before the parallel phase.
+- Listeners are still notified once per step on the main thread; they don't need to be thread-safe.
+
+Switching from the pre-threading single-RNG engine to per-species seeding changes the exact byte sequence of output for existing configs — same statistical behavior, different draws. Pin your expected outputs accordingly.
+
 ## Non-goals
 
 The optional ideas in the spec are out of scope for this build:
 
 - HTTP server (live state / dataset / image endpoints)
-- Per-mutation threading
+- Per-mutation-lineage threading (per-*species* threading is supported — see "Parallelism")
 - Custom end-condition predicates beyond `finalStepCount`
 
 ## Project layout

@@ -10,10 +10,20 @@ public final class Mutator {
     }
 
     public static Replicator mutate(Replicator parent, long newId, Random rng) {
-        double v = parent.variation();
+        MutantSpec spec = perturb(parent, rng);
         return new Replicator(
                 newId,
                 0.0,
+                spec.deathProbability(),
+                spec.replicationProbability(),
+                spec.mutationProbability(),
+                spec.variation()
+        );
+    }
+
+    public static MutantSpec perturb(Replicator parent, Random rng) {
+        double v = parent.variation();
+        return new MutantSpec(
                 perturb(parent.deathProbability(), v, rng),
                 perturb(parent.replicationProbability(), v, rng),
                 perturb(parent.mutationProbability(), v, rng),
