@@ -1,0 +1,16 @@
+{
+  "finalStepCount": 5000,
+  "crowdingFactor": 1000,
+  "randomSeed": 42,
+  "spontaneous": {
+    "spawnProbability": 0.01,
+    "deathProbability": 0.05,
+    "replicationProbability": 0.20,
+    "mutationProbability": 0.02,
+    "variation": 0.05
+  },
+  "output": {
+    "csv": "out/sim.csv",
+    "png": "out/sim.png"
+  }
+}

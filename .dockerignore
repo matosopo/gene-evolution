@@ -1,0 +1,6 @@
+target/
+out/
+.idea/
+.vscode/
+.claude/
+documents/*.odt
