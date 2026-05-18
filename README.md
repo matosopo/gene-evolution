@@ -34,6 +34,17 @@ pwsh scripts/run.ps1 examples/default.json
 
 Outputs land in the host workspace at the paths declared in the config (default `out/sim.csv` and `out/sim.png`).
 
+## Run — serve mode (web UI)
+
+```powershell
+pwsh scripts/mvn.ps1 package   # once
+pwsh scripts/serve.ps1         # then open http://localhost:8080
+```
+
+Browser form lets you tweak every config field and watch the lineage chart populate live (Server-Sent Events). The container binds port 8080; pass a different host port as the script arg, e.g. `pwsh scripts/serve.ps1 9090`. In serve mode any `output.csv` / `output.png` keys in posted configs are ignored — the chart is the only sink.
+
+Note: the page loads Chart.js from a public CDN, so the browser needs internet access (the server itself does not).
+
 ## Config
 
 JSON shape (see [examples/default.json](examples/default.json)):
@@ -64,19 +75,23 @@ The reference pseudocode in `documents/evolution-simulation.md` has a few bugs a
 
 ## Non-goals
 
-The optional ideas in the spec are out of scope for this build:
+The optional ideas in the spec that remain out of scope for this build:
 
-- HTTP server (live state / dataset / image endpoints)
-- Per-mutation threading
+- Per-mutation-lineage threading
 - Custom end-condition predicates beyond `finalStepCount`
+- Persistent run history (the in-memory `RunRegistry` evicts finished runs after ~10 min)
 
 ## Project layout
 
 ```
 src/main/java/sk/blueai/evolution/
-├── cli/        Main — argv → ConfigLoader → SimulationEngine.run
+├── cli/        Main — argv → ConfigLoader → SimulationEngine.run, or --serve → WebServer
 ├── config/     SimulationConfig, OutputConfig, ConfigLoader (org.json)
 ├── model/      Replicator (immutable record), Species, SpeciesSnapshot
 ├── engine/     SimulationEngine, Population, Binomial, Mutator
-└── output/     SimulationListener, CompositeListener, CsvLogger, PngGraphRecorder
+├── output/     SimulationListener, CompositeListener, CsvLogger, PngGraphRecorder
+└── web/        WebServer (Javalin), RunRegistry, Run, WebSseListener, SseMessage
+
+src/main/resources/web/
+└── index.html, style.css, app.js   (served by Javalin from the classpath)
 ```

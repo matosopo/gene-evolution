@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Gene Evolution Simulation</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Gene Evolution</h1>
+    <span id="status" class="status idle">Idle</span>
+  </header>
+
+  <main>
+    <aside id="panel">
+      <form id="config-form">
+        <fieldset>
+          <legend>Simulation</legend>
+          <label>finalStepCount <input type="number" name="finalStepCount" value="2000" min="0" step="1" required></label>
+          <label>crowdingFactor <input type="number" name="crowdingFactor" value="1000" min="1" step="1" required></label>
+          <label>randomSeed <input type="number" name="randomSeed" value="42" step="1" required></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Spontaneous replicator</legend>
+          <label>spawnProbability <input type="number" name="spawnProbability" value="0.01" min="0" max="1" step="0.001" required></label>
+          <label>deathProbability <input type="number" name="deathProbability" value="0.05" min="0" max="1" step="0.001" required></label>
+          <label>replicationProbability <input type="number" name="replicationProbability" value="0.20" min="0" max="1" step="0.001" required></label>
+          <label>mutationProbability <input type="number" name="mutationProbability" value="0.02" min="0" max="1" step="0.001" required></label>
+          <label>variation <input type="number" name="variation" value="0.05" min="0" max="1" step="0.001" required></label>
+        </fieldset>
+
+        <div class="actions">
+          <button type="submit" id="run-btn">Run</button>
+          <button type="button" id="reset-btn">Reset defaults</button>
+        </div>
+
+        <p class="hint">A new run replaces the chart. Closing the page does not stop the run on the server.</p>
+      </form>
+
+      <section id="summary" hidden>
+        <h2>Last run</h2>
+        <dl id="summary-list"></dl>
+      </section>
+    </aside>
+
+    <section id="chart-wrap">
+      <canvas id="chart"></canvas>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

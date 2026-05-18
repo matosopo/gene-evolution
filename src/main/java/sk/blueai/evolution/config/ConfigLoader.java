@@ -16,9 +16,14 @@ public final class ConfigLoader {
     }
 
     public static SimulationConfig load(Path file) throws IOException {
-        String text = Files.readString(file);
-        JSONObject root = new JSONObject(text);
+        return parse(new JSONObject(Files.readString(file)));
+    }
 
+    public static SimulationConfig parse(String json) {
+        return parse(new JSONObject(json));
+    }
+
+    public static SimulationConfig parse(JSONObject root) {
         int finalStepCount = root.getInt("finalStepCount");
         int crowdingFactor = root.getInt("crowdingFactor");
         long randomSeed = root.optLong("randomSeed", 0L);

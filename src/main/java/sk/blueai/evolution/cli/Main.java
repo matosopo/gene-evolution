@@ -2,19 +2,36 @@ package sk.blueai.evolution.cli;
 
 import java.nio.file.Path;
 
+import sk.blueai.evolution.config.ConfigLoader;
 import sk.blueai.evolution.config.OutputConfig;
 import sk.blueai.evolution.config.SimulationConfig;
-import sk.blueai.evolution.config.ConfigLoader;
 import sk.blueai.evolution.engine.SimulationEngine;
 import sk.blueai.evolution.output.CompositeListener;
 import sk.blueai.evolution.output.CsvLogger;
 import sk.blueai.evolution.output.PngGraphRecorder;
+import sk.blueai.evolution.web.WebServer;
 
 public final class Main {
 
     public static void main(String[] args) throws Exception {
+        if (args.length >= 1 && args[0].equals("--serve")) {
+            int port = WebServer.DEFAULT_PORT;
+            if (args.length >= 2) {
+                try {
+                    port = Integer.parseInt(args[1]);
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid port: " + args[1]);
+                    System.exit(2);
+                }
+            }
+            WebServer.start(port);
+            return;
+        }
+
         if (args.length != 1) {
-            System.err.println("Usage: java -jar gene-evolution-<version>.jar <config.json>");
+            System.err.println("Usage:");
+            System.err.println("  java -jar gene-evolution-<version>.jar <config.json>");
+            System.err.println("  java -jar gene-evolution-<version>.jar --serve [port]");
             System.exit(2);
         }
 
