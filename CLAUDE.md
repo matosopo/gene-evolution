@@ -44,6 +44,8 @@ Data flow: `Main` parses a JSON config into `SimulationConfig` → constructs `S
 - **`variation` is inherited unchanged** (NOT itself mutated). Mutating it under additive+clamp gives absorbing boundaries at 0 and 1. `MutatorTest.mutantInheritsVariationUnchanged` is the guard.
 - **Death evaluated before replication** in each step (a molecule cannot both die and reproduce in the same step). If you reorder, update the docstring on `SimulationEngine.run` and the README.
 - **Binomial sampler** switches between exact Bernoulli loop (when `n*p < 20 && n*(1-p) < 20`) and a normal approximation. Edits here need the `BinomialTest` mean-within-tolerance assertions to keep passing.
+- **Per-species parallelism is deterministic only because** (a) each task uses a fresh `Random` seeded from `seedFor(step, speciesId)` — pure function of `(randomSeed, step, speciesId)`, and (b) the commit phase iterates `activeSnapshot()` in insertion order and assigns mutant IDs via `population.nextSpeciesId()` in that order. `SimulationEngineTest.sameSeedSameOutputAcrossThreadCounts` guards both. Do not move RNG draws out of the compute task into the commit phase, and do not change `seedFor` casually — any change re-bases every existing seed's output.
+- **Workers must not touch shared state.** The compute task takes `(Species, factor, step)` and returns a `SpeciesStepResult`. The only shared inputs are the frozen `factor` and the species' own count read at task start. If you need a new piece of cross-species data, freeze it before the parallel phase and pass it in by value.
 
 ## Spec-vs-implementation deviations (full list in README, "Engine semantics")
 
@@ -59,4 +61,4 @@ Two things to keep correct if you touch shading or the web layer:
 
 ## Non-goals (intentionally not built)
 
-Per-mutation-lineage threading, end-condition predicates beyond `finalStepCount`, persistent run history, engine cancellation (closing the browser detaches the SSE client but doesn't stop the run). If you add one, structure it as a new module that consumes `SimulationListener` events — do not push I/O or threading into the engine.
+Per-mutation-lineage threading, end-condition predicates beyond `finalStepCount`, persistent run history, engine cancellation (closing the browser detaches the SSE client but doesn't stop the run). Per-*species* threading IS supported (see README "Parallelism") — the engine has the compute/commit split and a worker pool keyed off `threadCount`. If you add a new output, structure it as a `SimulationListener` consumer — do not push I/O into the engine, and do not extend the parallel phase to perform side effects.

@@ -27,6 +27,7 @@ public final class ConfigLoader {
         int finalStepCount = root.getInt("finalStepCount");
         int crowdingFactor = root.getInt("crowdingFactor");
         long randomSeed = root.optLong("randomSeed", 0L);
+        int threadCount = root.optInt("threadCount", 1);
 
         JSONObject sp = root.getJSONObject("spontaneous");
         Replicator template = new Replicator(
@@ -48,6 +49,6 @@ public final class ConfigLoader {
             output = OutputConfig.empty();
         }
 
-        return new SimulationConfig(finalStepCount, crowdingFactor, randomSeed, template, output);
+        return new SimulationConfig(finalStepCount, crowdingFactor, randomSeed, threadCount, template, output);
     }
 }
