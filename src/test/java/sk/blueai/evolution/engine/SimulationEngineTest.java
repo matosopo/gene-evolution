@@ -90,6 +90,38 @@ class SimulationEngineTest {
     }
 
     @Test
+    void sameSeedSameOutputAcrossThreadCounts() {
+        Replicator template = new Replicator(1, 0.5, 0.1, 0.5, 0.1, 0.1);
+        SimulationConfig c1 = new SimulationConfig(50, 200, 7L, 1, template, OutputConfig.empty());
+        SimulationConfig c2 = new SimulationConfig(50, 200, 7L, 2, template, OutputConfig.empty());
+        SimulationConfig c4 = new SimulationConfig(50, 200, 7L, 4, template, OutputConfig.empty());
+
+        List<long[]> r1 = capture(c1);
+        List<long[]> r2 = capture(c2);
+        List<long[]> r4 = capture(c4);
+
+        assertRowsEqual(r1, r2, "threadCount 1 vs 2");
+        assertRowsEqual(r1, r4, "threadCount 1 vs 4");
+    }
+
+    @Test
+    void parallelRunMatchesSpecPropertiesUnderHeavyMutation() {
+        Replicator template = new Replicator(1, 1.0, 0.01, 1.0, 1.0, 0.05);
+        SimulationConfig config = new SimulationConfig(100, 500, 99L, 4, template, OutputConfig.empty());
+
+        int[] maxObserved = {0};
+        SimulationEngine engine = new SimulationEngine(config, new SimulationListener() {
+            @Override public void onStep(int step, List<SpeciesSnapshot> species, long totalN) {
+                if (species.size() > maxObserved[0]) maxObserved[0] = species.size();
+            }
+        });
+        engine.run();
+
+        assertTrue(maxObserved[0] >= 10,
+                "expected >=10 species under parallel heavy-mutation, got " + maxObserved[0]);
+    }
+
+    @Test
     void crowdingFactorThrottlesGrowthNearCeiling() {
         Replicator template = new Replicator(1, 1.0, 0.0, 1.0, 0.5, 0.05);
         int C = 150;
@@ -106,6 +138,18 @@ class SimulationEngineTest {
         // Step-start factor freeze means transient overshoot is expected; allow 15%.
         assertTrue(peak[0] <= C * 1.15, "peak " + peak[0] + " should be near C=" + C);
         assertTrue(peak[0] >= C * 0.7, "peak " + peak[0] + " should grow near C=" + C);
+    }
+
+    private static void assertRowsEqual(List<long[]> a, List<long[]> b, String label) {
+        assertEquals(a.size(), b.size(), label + ": step count differs");
+        for (int i = 0; i < a.size(); i++) {
+            long[] ra = a.get(i);
+            long[] rb = b.get(i);
+            assertEquals(ra.length, rb.length, label + ": row length differs at step " + i);
+            for (int j = 0; j < ra.length; j++) {
+                assertEquals(ra[j], rb[j], label + ": value differs at step " + i + " col " + j);
+            }
+        }
     }
 
     private static List<long[]> capture(SimulationConfig config) {
